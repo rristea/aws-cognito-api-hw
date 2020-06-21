@@ -89,8 +89,27 @@ Resources:
       AllowedOAuthScopes:
         - email
         - openid
-  HWUserPoolDomain:
+  BackendUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: 'hello-world-domain'
+      Domain: !Ref FrontendProxyApi
       UserPoolId: !Ref BackendCognitoUserPool
+Outputs:
+  Region:
+    Description: "Region"
+    Value: !Ref AWS::Region
+  FrontendUrl:
+    Description: "Frontend client URL"
+    Value: !Sub 'https://${FrontendProxyApi}.execute-api.${AWS::Region}.amazonaws.com'
+  BackendHelloApiId:
+    Description: "API ID"
+    Value: !Ref BackendHelloApi
+  BackendHelloApiUrl:
+    Description: "API endpoint URL"
+    Value: !Sub 'https://${BackendHelloApi}.execute-api.${AWS::Region}.amazonaws.com/dev/'
+  BackendCognitoUserPoolId:
+    Description: "Cognito User Pool Id"
+    Value: !Ref BackendCognitoUserPool
+  BackendCognitoUserPoolClientId:
+    Description: "Cognito User Pool Client Id"
+    Value: !Ref BackendCognitoUserPoolClient
