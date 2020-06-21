@@ -98,15 +98,18 @@ Outputs:
   Region:
     Description: "Region"
     Value: !Ref AWS::Region
+  FrontendBucketName:
+    Description: "S3 bucket to hold the frontend client"
+    Value: !Ref FrontendBucket
   FrontendUrl:
     Description: "Frontend client URL"
     Value: !Sub 'https://${FrontendProxyApi}.execute-api.${AWS::Region}.amazonaws.com'
-  BackendHelloApiId:
+  FrontendProxyApiId:
     Description: "API ID"
-    Value: !Ref BackendHelloApi
+    Value: !Ref FrontendProxyApi
   BackendHelloApiUrl:
     Description: "API endpoint URL"
-    Value: !Sub 'https://${BackendHelloApi}.execute-api.${AWS::Region}.amazonaws.com/dev/'
+    Value: !Sub 'https://${BackendHelloApi}.execute-api.${AWS::Region}.amazonaws.com/dev'
   BackendCognitoUserPoolId:
     Description: "Cognito User Pool Id"
     Value: !Ref BackendCognitoUserPool
