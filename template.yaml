@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: TODO (AWS SAM template which creates a License Plate detection pipeline.)
+Globals:
+  Function:
+    Runtime: nodejs12.x
+    MemorySize: 128
+    Timeout: 10
+Resources:
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: 'index.html'
+        ErrorDocument: 'index.html'
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource:
+              'Fn::Sub': 'arn:aws:s3:::${FrontendBucket}/*'
+            Principal: "*"
+  FrontendProxyApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: 'Frontend Proxy'
+      Description: 'Proxy needed for HTTPS'
+      ProtocolType: HTTP
+      Target:
+        'Fn::Sub': 'http://${FrontendBucket}.s3-website-us-east-1.amazonaws.com'
+  BackendHelloApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+      Auth:
+        DefaultAuthorizer: BackendCognitoUserPoolAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: False
+        Authorizers:
+          BackendCognitoUserPoolAuthorizer:
+            UserPoolArn: !GetAtt BackendCognitoUserPool.Arn
+  BackendHelloFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: functions/hello.handler
+      Events:
+        HelloAPI:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BackendHelloApi
+            Path: /hello
+            Method: GET
+  BackendCognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: false
+  BackendCognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref BackendCognitoUserPool
+      SupportedIdentityProviders:
+        - COGNITO
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - 'Fn::Sub': 'https://${FrontendProxyApi}.execute-api.${AWS::Region}.amazonaws.com'
+      LogoutURLs:
+        - 'Fn::Sub': 'https://${FrontendProxyApi}.execute-api.${AWS::Region}.amazonaws.com'
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+  HWUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: 'hello-world-domain'
+      UserPoolId: !Ref BackendCognitoUserPool
