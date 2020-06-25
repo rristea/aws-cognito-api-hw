@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
-Description: TODO (AWS SAM template which creates a License Plate detection pipeline.)
+Description: AWS SAM template which creates a backend for a Hello World web app with Cognito Authentication
 Globals:
   Function:
     Runtime: nodejs12.x
@@ -8,59 +8,65 @@ Globals:
     Timeout: 10
 Resources:
   FrontendBucket:
-    Type: AWS::S3::Bucket
+    Type: 'AWS::S3::Bucket'
     Properties:
       WebsiteConfiguration:
-        IndexDocument: 'index.html'
-        ErrorDocument: 'index.html'
+        IndexDocument: index.html
+        ErrorDocument: index.html
   FrontendBucketPolicy:
-    Type: AWS::S3::BucketPolicy
+    Type: 'AWS::S3::BucketPolicy'
     Properties:
-      Bucket: !Ref FrontendBucket
+      Bucket:
+        Ref: FrontendBucket
       PolicyDocument:
         Statement:
-          -
-            Action:
-              - "s3:GetObject"
-            Effect: "Allow"
+          - Action:
+              - 's3:GetObject'
+            Effect: Allow
             Resource:
               'Fn::Sub': 'arn:aws:s3:::${FrontendBucket}/*'
-            Principal: "*"
+            Principal: '*'
   FrontendProxyApi:
-    Type: AWS::ApiGatewayV2::Api
+    Type: 'AWS::ApiGatewayV2::Api'
     Properties:
-      Name: 'Frontend Proxy'
-      Description: 'Proxy needed for HTTPS'
+      Name: Frontend Proxy
+      Description: Proxy needed for HTTPS
       ProtocolType: HTTP
       Target:
         'Fn::Sub': 'http://${FrontendBucket}.s3-website-us-east-1.amazonaws.com'
   BackendHelloApi:
-    Type: AWS::Serverless::Api
+    Type: 'AWS::Serverless::Api'
     Properties:
       StageName: dev
       Cors:
-        AllowMethods: "'*'"
-        AllowHeaders: "'*'"
-        AllowOrigin: "'*'"
+        AllowMethods: '''*'''
+        AllowHeaders: '''*'''
+        AllowOrigin: '''*'''
       Auth:
         DefaultAuthorizer: BackendCognitoUserPoolAuthorizer
-        AddDefaultAuthorizerToCorsPreflight: False
+        AddDefaultAuthorizerToCorsPreflight: false
         Authorizers:
           BackendCognitoUserPoolAuthorizer:
-            UserPoolArn: !GetAtt BackendCognitoUserPool.Arn
+            UserPoolArn:
+              'Fn::GetAtt':
+                - BackendCognitoUserPool
+                - Arn
   BackendHelloFunction:
-    Type: AWS::Serverless::Function
+    Type: 'AWS::Serverless::Function'
     Properties:
       Handler: functions/hello.handler
       Events:
         HelloAPI:
           Type: Api
           Properties:
-            RestApiId: !Ref BackendHelloApi
+            RestApiId:
+              Ref: BackendHelloApi
             Path: /hello
             Method: GET
+      Description: ''
+      MemorySize: ''
   BackendCognitoUserPool:
-    Type: AWS::Cognito::UserPool
+    Type: 'AWS::Cognito::UserPool'
     Properties:
       Policies:
         PasswordPolicy:
@@ -74,9 +80,10 @@ Resources:
           Name: email
           Required: false
   BackendCognitoUserPoolClient:
-    Type: AWS::Cognito::UserPoolClient
+    Type: 'AWS::Cognito::UserPoolClient'
     Properties:
-      UserPoolId: !Ref BackendCognitoUserPool
+      UserPoolId:
+        Ref: BackendCognitoUserPool
       SupportedIdentityProviders:
         - COGNITO
       AllowedOAuthFlowsUserPoolClient: true
@@ -90,29 +97,38 @@ Resources:
         - email
         - openid
   BackendUserPoolDomain:
-    Type: AWS::Cognito::UserPoolDomain
+    Type: 'AWS::Cognito::UserPoolDomain'
     Properties:
-      Domain: !Ref FrontendProxyApi
-      UserPoolId: !Ref BackendCognitoUserPool
+      Domain:
+        Ref: FrontendProxyApi
+      UserPoolId:
+        Ref: BackendCognitoUserPool
 Outputs:
   Region:
-    Description: "Region"
-    Value: !Ref AWS::Region
+    Description: Region
+    Value:
+      Ref: 'AWS::Region'
   FrontendBucketName:
-    Description: "S3 bucket to hold the frontend client"
-    Value: !Ref FrontendBucket
+    Description: S3 bucket to hold the frontend client
+    Value:
+      Ref: FrontendBucket
   FrontendUrl:
-    Description: "Frontend client URL"
-    Value: !Sub 'https://${FrontendProxyApi}.execute-api.${AWS::Region}.amazonaws.com'
+    Description: Frontend client URL
+    Value:
+      'Fn::Sub': 'https://${FrontendProxyApi}.execute-api.${AWS::Region}.amazonaws.com'
   FrontendProxyApiId:
-    Description: "API ID"
-    Value: !Ref FrontendProxyApi
+    Description: API ID
+    Value:
+      Ref: FrontendProxyApi
   BackendHelloApiUrl:
-    Description: "API endpoint URL"
-    Value: !Sub 'https://${BackendHelloApi}.execute-api.${AWS::Region}.amazonaws.com/dev'
+    Description: API endpoint URL
+    Value:
+      'Fn::Sub': 'https://${BackendHelloApi}.execute-api.${AWS::Region}.amazonaws.com/dev'
   BackendCognitoUserPoolId:
-    Description: "Cognito User Pool Id"
-    Value: !Ref BackendCognitoUserPool
+    Description: Cognito User Pool Id
+    Value:
+      Ref: BackendCognitoUserPool
   BackendCognitoUserPoolClientId:
-    Description: "Cognito User Pool Client Id"
-    Value: !Ref BackendCognitoUserPoolClient
+    Description: Cognito User Pool Client Id
+    Value:
+      Ref: BackendCognitoUserPoolClient
