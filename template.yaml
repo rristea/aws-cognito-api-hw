@@ -54,7 +54,8 @@ Resources:
   BackendHelloFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Handler: functions/hello.handler
+      CodeUri: functions
+      Handler: hello.handler
       Events:
         HelloAPI:
           Type: Api
